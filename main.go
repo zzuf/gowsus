@@ -72,7 +72,6 @@ func setResourcesXml() {
 		"{deployment_id1}", deploymentIds[0], "{deployment_id2}", deploymentIds[1],
 		"{uuid1}", u1.String(), "{uuid2}", u2.String(),
 		"{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
-	fmt.Println(revisionIds)
 
 	f, _ = ioutil.ReadFile("./resources/get-extended-update-info.xml")
 	getExtendedUpdateInfoXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
@@ -120,15 +119,13 @@ func doHeadOrGet(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Write(ef)
 		} else {
-			//if Header is HEAD
+			//if Method is HEAD
 			fmt.Printf("HEAD request,\nPath: %s\n", r.RequestURI)
 			w.WriteHeader(http.StatusOK)
-			w.Write(nil)
 		}
 	} else {
 		w.Header().Set("Content-type", "text/xml; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		w.Write(nil)
 	}
 
 }
@@ -164,7 +161,6 @@ func doPost(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Del("Content-type")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(nil)
 	}
 }
 
