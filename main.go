@@ -35,18 +35,6 @@ var filePath string
 var serverAddress string
 var serverPort string
 
-var opts struct {
-	Host       []string `short:"H" long:"host" description:"The listening adress." default:"127.0.0.1"`
-	Port       []string `short:"p" long:"port" description:"The listening port." default:"8530"`
-	Executable []string `short:"e" long:"executable" description:"The Microsoft signed executable returned to the client." required:"true"`
-	Command    []string `short:"c" long:"command" description:"The parameters for the current executable." required:"true"`
-}
-
-func getSHA256Binary(s []byte) []byte {
-	r := sha256.Sum256(s)
-	return r[:]
-}
-
 func setResourcesXml() {
 	var f []byte
 	u1, _ := uuid.NewRandom()
@@ -98,16 +86,6 @@ func setResourcesXml() {
 	getAuthorizationCookieXml = strings.NewReplacer("{cookie}", cookieValue).Replace(string(f))
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet || r.Method == http.MethodHead {
-		doHeadOrGet(w, r)
-	} else if r.Method == http.MethodPost {
-		doPost(w, r)
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
 func wsusBaseServer() {
 	setResourcesXml()
 
@@ -116,6 +94,16 @@ func wsusBaseServer() {
 
 	if err := http.ListenAndServe(":"+serverPort, nil); err != nil {
 		log.Fatal("Server Run Failed.: ", err)
+	}
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		doHeadOrGet(w, r)
+	} else if r.Method == http.MethodPost {
+		doPost(w, r)
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
@@ -178,6 +166,13 @@ func doPost(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write(nil)
 	}
+}
+
+var opts struct {
+	Host       []string `short:"H" long:"host" description:"The listening adress." default:"127.0.0.1"`
+	Port       []string `short:"p" long:"port" description:"The listening port." default:"8530"`
+	Executable []string `short:"e" long:"executable" description:"The Microsoft signed executable returned to the client." required:"true"`
+	Command    []string `short:"c" long:"command" description:"The parameters for the current executable." required:"true"`
 }
 
 func main() {
