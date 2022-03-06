@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"html"
 	"io"
@@ -19,7 +20,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	flags "github.com/jessevdk/go-flags"
 )
 
 var getConfigXml string
@@ -164,33 +164,31 @@ func doPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var opts struct {
-	Host       []string `short:"H" long:"host" description:"The listening adress." default:"127.0.0.1"`
-	Port       []string `short:"p" long:"port" description:"The listening port." default:"8530"`
-	Executable []string `short:"e" long:"executable" description:"The Microsoft signed executable returned to the client." required:"true"`
-	Command    []string `short:"c" long:"command" description:"The parameters for the current executable." required:"true"`
-}
-
 func main() {
-	_, err := flags.Parse(&opts)
-	if err != nil {
-		//log.Fatal(err)
+	var (
+		sa = flag.String("H", "127.0.0.1", "The listening adress.")
+		sp = flag.String("p", "8530", "The listening port.")
+		fp = flag.String("e", "", "The Microsoft signed executable returned to the client.")
+		ec = flag.String("c", "", "The parameters for the current executable.")
+	)
+	flag.Parse()
+	serverAddress = *sa
+	serverPort = *sp
+	filePath = *fp
+	executeCommand = *ec
+
+	if executeCommand == "" {
 		log.Fatal("Example: \ngowsus.exe -H X.X.X.X -p 8530 -e PsExec64.exe -c \"-accepteula -s calc.exe\"")
 	}
 
-	fmt.Printf("Host: %s\n", opts.Host)
-	fmt.Printf("Port: %s\n", opts.Port)
-	fmt.Printf("Executable: %s\n", opts.Executable)
-	fmt.Printf("Command: %s\n", opts.Command)
-
-	executeCommand = opts.Command[0]
-	serverAddress = opts.Host[0]
-	serverPort = opts.Port[0]
-	filePath = opts.Executable[0]
-
 	if _, err := os.Stat(filePath); err != nil {
-		log.Fatal("Executable file not found.")
+		log.Fatal("Executable file not found.\nExample: \ngowsus.exe -H X.X.X.X -p 8530 -e PsExec64.exe -c \"-accepteula -s calc.exe\"")
 	}
+
+	fmt.Printf("Host: %s |", serverAddress)
+	fmt.Printf("Port: %s |", serverPort)
+	fmt.Printf("Executable: %s |", filePath)
+	fmt.Printf("Command: %s\n", executeCommand)
 
 	wsusBaseServer()
 }
