@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -41,7 +40,7 @@ func setResourcesXml() {
 	u2, _ := uuid.NewRandom()
 	u3, _ := uuid.NewRandom()
 
-	ef, _ := ioutil.ReadFile(filePath)
+	ef, _ := os.ReadFile(filePath)
 	hash1 := sha1.Sum(ef)
 	sha1Str := base64.StdEncoding.EncodeToString(hash1[:])
 	hash256 := sha256.Sum256(ef)
@@ -58,30 +57,30 @@ func setResourcesXml() {
 	expireDate := time.Now().Add(time.Duration(24) * time.Hour * 1).Format(time.RFC3339)
 	cookieValue := base64.StdEncoding.EncodeToString([]byte(strings.Repeat("A", 47)))
 
-	f, _ = ioutil.ReadFile("./resources/get-config.xml")
+	f, _ = os.ReadFile("./resources/get-config.xml")
 	getConfigXml = strings.NewReplacer("{lastChange}", lastChangeDate).Replace(string(f))
 
-	f, _ = ioutil.ReadFile("./resources/get-cookie.xml")
+	f, _ = os.ReadFile("./resources/get-cookie.xml")
 	getCookieXml = strings.NewReplacer("{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
 
-	f, _ = ioutil.ReadFile("./resources/register-computer.xml")
+	f, _ = os.ReadFile("./resources/register-computer.xml")
 	registerComputerXml = string(f)
 
-	f, _ = ioutil.ReadFile("./resources/sync-updates.xml")
+	f, _ = os.ReadFile("./resources/sync-updates.xml")
 	syncUpdateXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
 		"{deployment_id1}", deploymentIds[0], "{deployment_id2}", deploymentIds[1],
 		"{uuid1}", u1.String(), "{uuid2}", u2.String(),
 		"{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
 
-	f, _ = ioutil.ReadFile("./resources/get-extended-update-info.xml")
+	f, _ = os.ReadFile("./resources/get-extended-update-info.xml")
 	getExtendedUpdateInfoXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
 		"{sha1}", sha1Str, "{sha256}", sha256Str, "{filename}", fileName,
 		"{file_size}", fileSize, "{command}", html.EscapeString(html.EscapeString(executeCommand)), "{url}", fileDownloadURL).Replace(string(f))
 
-	f, _ = ioutil.ReadFile("./resources/report-event-batch.xml")
+	f, _ = os.ReadFile("./resources/report-event-batch.xml")
 	reportEventBatchXml = string(f)
 
-	f, _ = ioutil.ReadFile("./resources/get-authorization-cookie.xml")
+	f, _ = os.ReadFile("./resources/get-authorization-cookie.xml")
 	getAuthorizationCookieXml = strings.NewReplacer("{cookie}", cookieValue).Replace(string(f))
 }
 
@@ -115,7 +114,7 @@ func doHeadOrGet(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-type", "application/octet-stream")
 		if r.Method == "GET" {
 			fmt.Printf("GET request,\nPath: %s\n", r.RequestURI)
-			ef, _ := ioutil.ReadFile(filePath)
+			ef, _ := os.ReadFile(filePath)
 			w.WriteHeader(http.StatusOK)
 			w.Write(ef)
 		} else {
