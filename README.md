@@ -1,5 +1,5 @@
 # GoWSUS
-It is intended to impersonate a legitimate WSUS server and send malicious responses.
+This is intended to impersonate a legitimate WSUS server and send malicious responses.
 
 ## TL;DR
 Code re-used from:
