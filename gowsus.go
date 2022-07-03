@@ -178,7 +178,8 @@ func main() {
 	executeCommand = *ec
 
 	if executeCommand == "" {
-		log.Fatal("Example: \ngowsus.exe -H X.X.X.X -p 8530 -e PsExec64.exe -c \"-accepteula -s calc.exe\"")
+		fmt.Println("Example: \ngowsus.exe -H X.X.X.X -p 8530 -e PsExec64.exe -c \"-accepteula -s calc.exe\"")
+		return
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
