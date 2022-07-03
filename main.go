@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -21,13 +22,29 @@ import (
 	"github.com/google/uuid"
 )
 
-var getConfigXml string
-var getCookieXml string
-var registerComputerXml string
-var syncUpdateXml string
-var getExtendedUpdateInfoXml string
-var reportEventBatchXml string
+//go:embed resources/get-authorization-cookie.xml
 var getAuthorizationCookieXml string
+
+//go:embed resources/get-config.xml
+var getConfigXml string
+
+//go:embed resources/get-cookie.xml
+var getCookieXml string
+
+//go:embed resources/get-extended-update-info.xml
+var getExtendedUpdateInfoXml string
+
+//go:embed resources/internal-error.xml
+var internalErrorXml string
+
+//go:embed resources/register-computer.xml
+var registerComputerXml string
+
+//go:embed resources/sync-updates.xml
+var syncUpdateXml string
+
+//go:embed resources/report-event-batch.xml
+var reportEventBatchXml string
 
 var executeCommand string
 var filePath string
@@ -35,7 +52,6 @@ var serverAddress string
 var serverPort string
 
 func setResourcesXml() {
-	var f []byte
 	u1, _ := uuid.NewRandom()
 	u2, _ := uuid.NewRandom()
 	u3, _ := uuid.NewRandom()
@@ -57,31 +73,16 @@ func setResourcesXml() {
 	expireDate := time.Now().Add(time.Duration(24) * time.Hour * 1).Format(time.RFC3339)
 	cookieValue := base64.StdEncoding.EncodeToString([]byte(strings.Repeat("A", 47)))
 
-	f, _ = os.ReadFile("./resources/get-config.xml")
-	getConfigXml = strings.NewReplacer("{lastChange}", lastChangeDate).Replace(string(f))
-
-	f, _ = os.ReadFile("./resources/get-cookie.xml")
-	getCookieXml = strings.NewReplacer("{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
-
-	f, _ = os.ReadFile("./resources/register-computer.xml")
-	registerComputerXml = string(f)
-
-	f, _ = os.ReadFile("./resources/sync-updates.xml")
+	getConfigXml = strings.NewReplacer("{lastChange}", lastChangeDate).Replace(getConfigXml)
+	getCookieXml = strings.NewReplacer("{expire}", expireDate, "{cookie}", cookieValue).Replace(getCookieXml)
 	syncUpdateXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
 		"{deployment_id1}", deploymentIds[0], "{deployment_id2}", deploymentIds[1],
 		"{uuid1}", u1.String(), "{uuid2}", u2.String(),
-		"{expire}", expireDate, "{cookie}", cookieValue).Replace(string(f))
-
-	f, _ = os.ReadFile("./resources/get-extended-update-info.xml")
+		"{expire}", expireDate, "{cookie}", cookieValue).Replace(syncUpdateXml)
 	getExtendedUpdateInfoXml = strings.NewReplacer("{revision_id1}", revisionIds[0], "{revision_id2}", revisionIds[1],
 		"{sha1}", sha1Str, "{sha256}", sha256Str, "{filename}", fileName,
-		"{file_size}", fileSize, "{command}", html.EscapeString(html.EscapeString(executeCommand)), "{url}", fileDownloadURL).Replace(string(f))
-
-	f, _ = os.ReadFile("./resources/report-event-batch.xml")
-	reportEventBatchXml = string(f)
-
-	f, _ = os.ReadFile("./resources/get-authorization-cookie.xml")
-	getAuthorizationCookieXml = strings.NewReplacer("{cookie}", cookieValue).Replace(string(f))
+		"{file_size}", fileSize, "{command}", html.EscapeString(html.EscapeString(executeCommand)), "{url}", fileDownloadURL).Replace(getExtendedUpdateInfoXml)
+	getAuthorizationCookieXml = strings.NewReplacer("{cookie}", cookieValue).Replace(getAuthorizationCookieXml)
 }
 
 func wsusBaseServer() {
